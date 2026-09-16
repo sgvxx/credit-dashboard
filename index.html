@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>分期信贷业务经营分析仪表盘</title>
+<script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+    background: #070b14;
+    color: #e8ecf4;
+    min-width: 1440px;
+    overflow-x: auto;
+  }
+  .dashboard {
+    max-width: 1920px;
+    margin: 0 auto;
+    padding: 20px 28px 32px;
+  }
+  .header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 18px 28px;
+    background: linear-gradient(135deg, #0f1629 0%, #131d38 100%);
+    border: 1px solid #1e2d52;
+    border-radius: 12px;
+    margin-bottom: 18px;
+  }
+  .header-left h1 {
+    font-size: 24px;
+    font-weight: 700;
+    background: linear-gradient(90deg, #5ba3ff, #a78bfa);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    letter-spacing: 2px;
+  }
+  .header-left .subtitle {
+    font-size: 12px;
+    color: #6b7a94;
+    margin-top: 4px;
+    letter-spacing: 1px;
+  }
+  .header-right { text-align: right; }
+  .header-right .date-label {
+    font-size: 11px;
+    color: #6b7a94;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+  .header-right .date-value {
+    font-size: 16px;
+    font-weight: 600;
+    color: #c8d4e8;
+    margin-top: 2px;
+  }
+  .kpi-row {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 14px;
+    margin-bottom: 18px;
+  }
+  .kpi-card {
+    background: linear-gradient(145deg, #0f1628, #131c33);
+    border: 1px solid #1c2847;
+    border-radius: 10px;
+    padding: 16px 18px;
+    position: relative;
+    overflow: hidden;
+  }
+  .kpi-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0;
+    width: 3px; height: 100%;
+  }
+  .kpi-card.blue::before { background: #4a9eff; }
+  .kpi-card.cyan::before { background: #06b6d4; }
+  .kpi-card.green::before { background: #22c55e; }
+  .kpi-card.purple::before { background: #a78bfa; }
+  .kpi-card.orange::before { background: #f59e0b; }
+  .kpi-card.red::before { background: #ef4444; }
+  .kpi-label {
+    font-size: 12px;
+    color: #7a8aa6;
+    margin-bottom: 8px;
+    letter-spacing: 0.5px;
+  }
+  .kpi-value {
+    font-size: 26px;
+    font-weight: 700;
+    color: #f0f4fc;
+    line-height: 1.1;
+  }
+  .kpi-value .unit {
+    font-size: 13px;
+    font-weight: 400;
+    color: #7a8aa6;
+    margin-left: 3px;
+  }
+  .kpi-sub {
+    font-size: 11px;
+    color: #5a6a86;
+    margin-top: 6px;
+  }
+  .kpi-sub .positive { color: #22c55e; }
+  .kpi-sub .negative { color: #ef4444; }
+  .grid-row {
+    display: grid;
+    gap: 14px;
+    margin-bottom: 18px;
+  }
+  .grid-2-1 { grid-template-columns: 2fr 1fr; }
+  .grid-1-1 { grid-template-columns: 1fr 1fr; }
+  .grid-1-1-1 { grid-template-columns: 1fr 1fr 1fr; }
+  .panel {
+    background: linear-gradient(145deg, #0d1322, #101830);
+    border: 1px solid #1a2540;
+    border-radius: 10px;
+    padding: 16px 18px;
+  }
+  .panel-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: #c8d4e8;
+    margin-bottom: 12px;
+    padding-left: 10px;
+    border-left: 3px solid #4a9eff;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .panel-title .title-note {
+    font-size: 11px;
+    font-weight: 400;
+    color: #5a6a86;
+  }
+  .chart-container { width: 100%; }
+  .funnel-wrap { padding: 8px 0; }
+  .funnel-step {
+    display: flex;
+    align-items: center;
+    margin-bottom: 6px;
+    position: relative;
+  }
+  .funnel-step-label {
+    width: 100px;
+    font-size: 12px;
+    color: #9aa8c0;
+    text-align: right;
+    padding-right: 12px;
+    flex-shrink: 0;
+  }
+  .funnel-bar-wrap {
+    flex: 1;
+    height: 36px;
+    position: relative;
+    display: flex;
+    align-items: center;
+  }
+  .funnel-bar {
+    height: 30px;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 12px;
+    position: relative;
+    min-width: 120px;
+  }
+  .funnel-bar .bar-value {
+    font-size: 13px;
+    font-weight: 600;
+    color: #fff;
+  }
+  .funnel-bar .bar-rate {
+    font-size: 11px;
+    color: rgba(255,255,255,0.85);
+    margin-left: 8px;
+  }
+  .funnel-metrics {
+    width: 200px;
+    flex-shrink: 0;
+    padding-left: 14px;
+    display: flex;
+    gap: 12px;
+  }
+  .funnel-metric { text-align: center; }
+  .funnel-metric .metric-label {
+    font-size: 10px;
+    color: #5a6a86;
+    margin-bottom: 2px;
+  }
+  .funnel-metric .metric-value {
+    font-size: 13px;
+    font-weight: 600;
+  }
+  .funnel-metric .metric-value.green { color: #22c55e; }
+  .funnel-metric .metric-value.red { color: #ef4444; }
+  .funnel-metric .metric-value.gray { color: #7a8aa6; }
+  .zone-conv-table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  .zone-conv-table th {
+    font-size: 11px;
+    color: #6b7a94;
+    font-weight: 500;
+    padding: 8px 6px;
+    text-align: center;
+    border-bottom: 1px solid #1a2540;
+  }
+  .zone-conv-table td {
+    padding: 7px 6px;
+    text-align: center;
+    font-size: 12px;
+    border-bottom: 1px solid #111a30;
+  }
+  .zone-conv-table .zone-name {
+    text-align: left;
+    font-weight: 600;
+    color: #c8d4e8;
+    padding-left: 10px;
+  }
+  .conv-cell {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+  }
+  .conv-cell .conv-val {
+    font-size: 11px;
+    color: #8a9ab8;
+  }
+  .conv-cell .conv-rate {
+    font-size: 12px;
+    font-weight: 600;
+  }
+  .conv-cell .conv-rate.green { color: #22c55e; }
+  .conv-cell .conv-rate.red { color: #ef4444; }
+  .conv-bar-bg {
+    width: 100%;
+    height: 4px;
+    background: #1a2540;
+    border-radius: 2px;
+    margin-top: 3px;
+    overflow: hidden;
+  }
+  .conv-bar-fill {
+    height: 100%;
+    border-radius: 2px;
+  }
+  .city-table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  .city-table th {
+    font-size: 11px;
+    color: #6b7a94;
+    font-weight: 500;
+    padding: 8px 8px;
+    text-align: right;
+    border-bottom: 1px solid #1a2540;
+  }
+  .city-table th:first-child { text-align: left; }
+  .city-table td {
+    padding: 7px 8px;
+    text-align: right;
+    font-size: 12px;
+    color: #a8b4cc;
+    border-bottom: 1px solid #111a30;
+  }
+  .city-table td:first-child {
+    text-align: left;
+    font-weight: 600;
+    color: #c8d4e8;
+  }
+  .city-table .rank-badge {
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    line-height: 20px;
+    text-align: center;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 700;
+    margin-right: 8px;
+  }
+  .rank-1 { background: rgba(245,158,11,0.2); color: #f59e0b; }
+  .rank-2 { background: rgba(148,163,184,0.2); color: #94a3b8; }
+  .rank-3 { background: rgba(180,83,9,0.2); color: #d97706; }
+  .rank-other { background: rgba(74,158,255,0.15); color: #4a9eff; }
+  .profit-pos { color: #22c55e; }
+  .overdue-high { color: #ef4444; }
+  .overdue-mid { color: #f59e0b; }
+  .overdue-low { color: #22c55e; }
+  .section-label {
+    font-size: 13px;
+    color: #5a6a86;
+    margin: 4px 0 10px;
+    padding-left: 4px;
+    letter-spacing: 1px;
+  }
+</style>
+</head>
+<body>
+<div class="dashboard">
+  <div class="header">
+    <div class="header-left">
+      <h1>分期信贷业务经营分析仪表盘</h1>
+      <div class="subtitle">INSTALLMENT CREDIT BUSINESS OPERATION DASHBOARD</div>
+    </div>
+    <div class="header-right">
+      <div class="date-label">数据周期</div>
+      <div class="date-value">2020年8月1日 — 8月31日</div>
+    </div>
+  </div>
+  <div class="kpi-row">
+    <div class="kpi-card blue">
+      <div class="kpi-label">总业绩目标</div>
+      <div class="kpi-value">120,990,759<span class="unit">元</span></div>
+      <div class="kpi-sub">29个业务组 · 13个城市</div>
+    </div>
+    <div class="kpi-card cyan">
+      <div class="kpi-label">总成交额</div>
+      <div class="kpi-value">97,204,643<span class="unit">元</span></div>
+      <div class="kpi-sub">日均成交 <span class="positive">313.6万</span></div>
+    </div>
+    <div class="kpi-card green">
+      <div class="kpi-label">目标完成率</div>
+      <div class="kpi-value">80.34<span class="unit">%</span></div>
+      <div class="kpi-sub">差额 <span class="negative">-23,786,116</span></div>
+    </div>
+    <div class="kpi-card purple">
+      <div class="kpi-label">毛利（利息-逾期）</div>
+      <div class="kpi-value">4,034,085<span class="unit">元</span></div>
+      <div class="kpi-sub">毛利率 <span class="positive">4.15%</span></div>
+    </div>
+    <div class="kpi-card orange">
+      <div class="kpi-label">总注册用户</div>
+      <div class="kpi-value">2,626,598<span class="unit">人</span></div>
+      <div class="kpi-sub">成交用户 807,045 人</div>
+    </div>
+    <div class="kpi-card red">
+      <div class="kpi-label">整体转化率</div>
+      <div class="kpi-value">30.73<span class="unit">%</span></div>
+      <div class="kpi-sub">注册→成交全链路</div>
+    </div>
+  </div>
+  <div class="grid-row grid-2-1">
+    <div class="panel">
+      <div class="panel-title">战区业绩排名<span class="title-note">按成交额降序排列</span></div>
+      <div id="chart-zone-ranking" class="chart-container" style="height:280px;"></div>
+    </div>
+    <div class="panel">
+      <div class="panel-title">战区风险概览<span class="title-note">逾期率 / 利息率 / 毛利</span></div>
+      <div id="chart-zone-risk" class="chart-container" style="height:280px;"></div>
+    </div>
+  </div>
+  <div class="grid-row grid-1-1">
+    <div class="panel">
+      <div class="panel-title">用户转化漏斗（全链路明细）<span class="title-note">每环节转化率 / 流失率 / 流失人数</span></div>
+      <div class="funnel-wrap" id="funnel-container"></div>
+    </div>
+    <div class="panel">
+      <div class="panel-title">战区转化率对比<span class="title-note">绿色=转化率 · 红色=流失率</span></div>
+      <div id="zone-conv-container"></div>
+    </div>
+  </div>
+  <div class="section-label">地域分布分析 · 中国行政区划气泡图</div>
+  <div class="grid-row grid-1-1-1">
+    <div class="panel">
+      <div class="panel-title">成交额地域分布<span class="title-note">气泡大小=成交额</span></div>
+      <div id="map-deal" class="chart-container" style="height:340px;"></div>
+    </div>
+    <div class="panel">
+      <div class="panel-title">逾期金额地域分布<span class="title-note">气泡大小=逾期金额</span></div>
+      <div id="map-overdue" class="chart-container" style="height:340px;"></div>
+    </div>
+    <div class="panel">
+      <div class="panel-title">风险等级地域分布<span class="title-note">气泡大小=逾期率</span></div>
+      <div id="map-risk" class="chart-container" style="height:340px;"></div>
+    </div>
+  </div>
+  <div class="grid-row grid-1-1">
+    <div class="panel">
+      <div class="panel-title">城市利润与风险排名<span class="title-note">按毛利降序 · 含逾期率标注</span></div>
+      <div style="max-height:340px;overflow-y:auto;">
+        <table class="city-table" id="city-table"></table>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="panel-title">每日成交与毛利趋势<span class="title-note">8月全月日度走势</span></div>
+      <div id="chart-daily" class="chart-container" style="height:340px;"></div>
+    </div>
+  </div>
+</div>
+<script>
+const DATA={kpi:{total_target:120990759,total_deal:97204643,completion_rate:80.34,total_interest:5870970,total_overdue:1836885,gross_profit:4034085,total_register:2626598,total_deal_users:807045,overall_conv_rate:30.73},funnel:[{step:"注册人数",value:2626598,step_conv_rate:100,step_churn_rate:0,overall_rate:100,churn_count:0},{step:"实名认证人数",value:2558507,step_conv_rate:97.41,step_churn_rate:2.59,overall_rate:97.41,churn_count:68091},{step:"戳额人数",value:2452915,step_conv_rate:95.87,step_churn_rate:4.13,overall_rate:93.39,churn_count:105592},{step:"给额人数",value:1482986,step_conv_rate:60.46,step_churn_rate:39.54,overall_rate:56.46,churn_count:969929},{step:"成交人数",value:807045,step_conv_rate:54.42,step_churn_rate:45.58,overall_rate:30.73,churn_count:675941}],zone_ranking:[{战区:"东部战区",成交额:57006694,目标:70360104,完成率:81.02,战区经理:"江永",战区等级:"一级战区"},{战区:"南部战区",成交额:19702075,目标:27469871,完成率:71.72,战区经理:"高安平",战区等级:"二级战区"},{战区:"西部战区",成交额:13451694,目标:16085190,完成率:83.63,战区经理:"田楠",战区等级:"二级战区"},{战区:"北部战区",成交额:7044180,目标:7075594,完成率:99.56,战区经理:"沈乐欣",战区等级:"三级战区"}],zone_funnel:[{zone:"东部战区",steps:[{step:"注册人数",value:1556609,conv_rate:100,churn_rate:0},{step:"实名认证人数",value:1511760,conv_rate:97.12,churn_rate:2.88},{step:"戳额人数",value:1447092,conv_rate:95.72,churn_rate:4.28},{step:"给额人数",value:866169,conv_rate:59.86,churn_rate:40.14},{step:"成交人数",value:463756,conv_rate:53.54,churn_rate:46.46}]},{zone:"南部战区",steps:[{step:"注册人数",value:539082,conv_rate:100,churn_rate:0},{step:"实名认证人数",value:525649,conv_rate:97.51,churn_rate:2.49},{step:"戳额人数",value:502070,conv_rate:95.51,churn_rate:4.49},{step:"给额人数",value:305826,conv_rate:60.91,churn_rate:39.09},{step:"成交人数",value:171566,conv_rate:56.1,churn_rate:43.9}]},{zone:"西部战区",steps:[{step:"注册人数",value:347904,conv_rate:100,churn_rate:0},{step:"实名认证人数",value:341020,conv_rate:98.02,churn_rate:1.98},{step:"戳额人数",value:329635,conv_rate:96.66,churn_rate:3.34},{step:"给额人数",value:206717,conv_rate:62.71,churn_rate:37.29},{step:"成交人数",value:112501,conv_rate:54.42,churn_rate:45.58}]},{zone:"北部战区",steps:[{step:"注册人数",value:183003,conv_rate:100,churn_rate:0},{step:"实名认证人数",value:180078,conv_rate:98.4,churn_rate:1.6},{step:"戳额人数",value:174118,conv_rate:96.69,churn_rate:3.31},{step:"给额人数",value:104274,conv_rate:59.89,churn_rate:40.11},{step:"成交人数",value:59222,conv_rate:56.79,churn_rate:43.21}]}],zone_risk:[{战区:"东部战区",成交额:57006694,应收利息:3454403,逾期金额:865593,毛利:2588810,逾期率:1.52,利息率:6.06},{战区:"北部战区",成交额:7044180,应收利息:434056,逾期金额:182950,毛利:251106,逾期率:2.6,利息率:6.16},{战区:"南部战区",成交额:19702075,应收利息:1174938,逾期金额:538326,毛利:636612,逾期率:2.73,利息率:5.96},{战区:"西部战区",成交额:13451694,应收利息:807573,逾期金额:250016,毛利:557557,逾期率:1.86,利息率:6}],cities:[{city:"上海",zone:"东部战区",deal_amount:12727226,target:15112661,completion_rate:84.22,gross_profit:678448,interest:772476,overdue:94028,overdue_rate:0.74,register:340119,deal_users:108004,sesame_score:693.7,city_level:"一线",coord:[121.47,31.23]},{city:"北京",zone:"北部战区",deal_amount:4309027,target:3793411,completion_rate:113.59,gross_profit:126934,interest:261648,overdue:134714,overdue_rate:3.13,register:130957,deal_users:41343,sesame_score:688.6,city_level:"一线",coord:[116.4,39.9]},{city:"南京",zone:"东部战区",deal_amount:10589646,target:15191908,completion_rate:69.71,gross_profit:504260,interest:629493,overdue:125233,overdue_rate:1.18,register:283014,deal_users:84882,sesame_score:697.1,city_level:"二线",coord:[118.8,32.06]},{city:"合肥",zone:"东部战区",deal_amount:7680916,target:7161774,completion_rate:107.25,gross_profit:200371,interest:476713,overdue:276342,overdue_rate:3.6,register:189087,deal_users:54389,sesame_score:696,city_level:"二线",coord:[117.27,31.86]},{city:"天津",zone:"北部战区",deal_amount:2735153,target:3282183,completion_rate:83.33,gross_profit:124172,interest:172408,overdue:48236,overdue_rate:1.76,register:52046,deal_users:17879,sesame_score:685.5,city_level:"一线",coord:[117.2,39.13]},{city:"广州",zone:"南部战区",deal_amount:15910597,target:24740007,completion_rate:64.31,gross_profit:485139,interest:944407,overdue:459268,overdue_rate:2.89,register:430016,deal_users:139682,sesame_score:688.9,city_level:"一线",coord:[113.26,23.13]},{city:"成都",zone:"西部战区",deal_amount:3436418,target:2699085,completion_rate:127.32,gross_profit:183086,interest:207517,overdue:24431,overdue_rate:0.71,register:94544,deal_users:31836,sesame_score:691.6,city_level:"二线",coord:[104.07,30.67]},{city:"杭州",zone:"东部战区",deal_amount:12734530,target:15578585,completion_rate:81.74,gross_profit:576552,interest:771638,overdue:195086,overdue_rate:1.53,register:369697,deal_users:108183,sesame_score:698.7,city_level:"二线",coord:[120.16,30.28]},{city:"武汉",zone:"西部战区",deal_amount:4333291,target:6499936,completion_rate:66.67,gross_profit:197030,interest:258544,overdue:61514,overdue_rate:1.42,register:93030,deal_users:28254,sesame_score:698.5,city_level:"二线",coord:[114.31,30.59]},{city:"深圳",zone:"南部战区",deal_amount:3791478,target:2729864,completion_rate:138.89,gross_profit:151473,interest:230531,overdue:79058,overdue_rate:2.09,register:109066,deal_users:31884,sesame_score:689,city_level:"一线",coord:[114.06,22.55]},{city:"苏州",zone:"东部战区",deal_amount:13274376,target:17315176,completion_rate:76.66,gross_profit:629179,interest:804083,overdue:174904,overdue_rate:1.32,register:374692,deal_users:108298,sesame_score:693.8,city_level:"二线",coord:[120.62,31.32]},{city:"西安",zone:"西部战区",deal_amount:3184094,target:5062709,completion_rate:62.89,gross_profit:71051,interest:195472,overdue:124421,overdue_rate:3.91,register:94159,deal_users:30510,sesame_score:691.2,city_level:"二线",coord:[108.94,34.34]},{city:"重庆",zone:"西部战区",deal_amount:2497891,target:1823460,completion_rate:136.99,gross_profit:106390,interest:146040,overdue:39650,overdue_rate:1.59,register:66171,deal_users:21901,sesame_score:689.9,city_level:"二线",coord:[106.55,29.56]}],daily_trend:[{日期_str:"08-01",成交额:2625605,应收利息:249057,逾期金额:86143,毛利:162914},{日期_str:"08-02",成交额:2665524,应收利息:255579,逾期金额:87015,毛利:168564},{日期_str:"08-03",成交额:2246000,应收利息:91172,逾期金额:69158,毛利:22014},{日期_str:"08-04",成交额:1642573,应收利息:69145,逾期金额:14180,毛利:54965},{日期_str:"08-05",成交额:2846641,应收利息:238835,逾期金额:54836,毛利:183999},{日期_str:"08-06",成交额:2720187,应收利息:267631,逾期金额:80886,毛利:186745},{日期_str:"08-07",成交额:2887399,应收利息:182471,逾期金额:28213,毛利:154258},{日期_str:"08-08",成交额:3314880,应收利息:218872,逾期金额:22533,毛利:196339},{日期_str:"08-09",成交额:3217120,应收利息:177892,逾期金额:74531,毛利:103361},{日期_str:"08-10",成交额:1641138,应收利息:78943,逾期金额:41597,毛利:37346},{日期_str:"08-11",成交额:1624037,应收利息:78285,逾期金额:8974,毛利:69311},{日期_str:"08-12",成交额:2916602,应收利息:145958,逾期金额:64830,毛利:81128},{日期_str:"08-13",成交额:2801941,应收利息:143257,逾期金额:35669,毛利:107588},{日期_str:"08-14",成交额:3641364,应收利息:191912,逾期金额:86343,毛利:105569},{日期_str:"08-15",成交额:3472219,应收利息:311708,逾期金额:32544,毛利:279164},{日期_str:"08-16",成交额:3370709,应收利息:222896,逾期金额:52376,毛利:170520},{日期_str:"08-17",成交额:2979802,应收利息:145812,逾期金额:25603,毛利:120209},{日期_str:"08-18",成交额:1627270,应收利息:84108,逾期金额:17689,毛利:66419},{日期_str:"08-19",成交额:3620618,应收利息:233100,逾期金额:92711,毛利:140389},{日期_str:"08-20",成交额:3579879,应收利息:199157,逾期金额:27541,毛利:171616},{日期_str:"08-21",成交额:4114557,应收利息:219780,逾期金额:96008,毛利:123772},{日期_str:"08-22",成交额:3679570,应收利息:232656,逾期金额:93945,毛利:138711},{日期_str:"08-23",成交额:3753217,应收利息:228254,逾期金额:61980,毛利:166274},{日期_str:"08-24",成交额:3662528,应收利息:184817,逾期金额:101046,毛利:83771},{日期_str:"08-25",成交额:1927152,应收利息:100570,逾期金额:13525,毛利:87045},{日期_str:"08-26",成交额:4293549,应收利息:217133,逾期金额:44696,毛利:172437},{日期_str:"08-27",成交额:4193780,应收利息:207058,逾期金额:146069,毛利:60989},{日期_str:"08-28",成交额:4221782,应收利息:209456,逾期金额:69130,毛利:140326},{日期_str:"08-29",成交额:4279247,应收利息:229672,逾期金额:87160,毛利:142512},{日期_str:"08-30",成交额:3754847,应收利息:196586,逾期金额:50989,毛利:145597},{日期_str:"08-31",成交额:3882906,应收利息:259198,逾期金额:68965,毛利:190233}]};
+const ZONE_COLORS={'东部战区':'#4a9eff','南部战区':'#22c55e','西部战区':'#f59e0b','北部战区':'#a78bfa'};
+function fmtNum(n){return n.toLocaleString('zh-CN')}
+function fmtWan(n){return(n/10000).toFixed(1)+'万'}
+(function(){const chart=echarts.init(document.getElementById('chart-zone-ranking'),'dark');const data=DATA.zone_ranking;const names=data.map(d=>d.战区).reverse();const amounts=data.map(d=>d.成交额).reverse();const rates=data.map(d=>d.完成率).reverse();const targets=data.map(d=>d.目标).reverse();chart.setOption({backgroundColor:'transparent',tooltip:{trigger:'axis',axisPointer:{type:'shadow'},backgroundColor:'rgba(15,22,41,0.95)',borderColor:'#2a3a5c',textStyle:{color:'#e8ecf4',fontSize:12},formatter:function(params){const idx=params[0].dataIndex;const d=data[data.length-1-idx];return'<b>'+d.战区+'</b><br/>成交额：'+fmtNum(d.成交额)+' 元<br/>目标：'+fmtNum(d.目标)+' 元<br/>完成率：'+d.完成率+'%<br/>战区经理：'+d.战区经理+' · '+d.战区等级}},grid:{left:90,right:100,top:20,bottom:30},xAxis:{type:'value',axisLine:{lineStyle:{color:'#2a3a5c'}},axisLabel:{color:'#6b7a94',fontSize:11,formatter:v=>(v/10000).toFixed(0)+'万'},splitLine:{lineStyle:{color:'#141d33'}}},yAxis:{type:'category',data:names,axisLine:{lineStyle:{color:'#2a3a5c'}},axisLabel:{color:'#c8d4e8',fontSize:13,fontWeight:600},axisTick:{show:false}},series:[{name:'目标',type:'bar',data:targets,barWidth:18,barGap:'-100%',itemStyle:{color:'rgba(74,158,255,0.15)',borderRadius:[0,4,4,0]},tooltip:{show:false},silent:true},{name:'成交额',type:'bar',data:amounts.map((v,i)=>({value:v,itemStyle:{color:new echarts.graphic.LinearGradient(0,0,1,0,[{offset:0,color:ZONE_COLORS[names[i]]+'99'},{offset:1,color:ZONE_COLORS[names[i]]}]),borderRadius:[0,4,4,0]}})),barWidth:18,label:{show:true,position:'right',color:'#c8d4e8',fontSize:12,fontWeight:600,formatter:p=>fmtWan(p.value)+'  ('+rates[p.dataIndex]+'%)'}}]})})();
+(function(){const chart=echarts.init(document.getElementById('chart-zone-risk'),'dark');const data=DATA.zone_risk;chart.setOption({backgroundColor:'transparent',tooltip:{trigger:'axis',backgroundColor:'rgba(15,22,41,0.95)',borderColor:'#2a3a5c',textStyle:{color:'#e8ecf4',fontSize:12}},legend:{data:['逾期率(%)','利息率(%)'],textStyle:{color:'#7a8aa6',fontSize:11},top:0,right:10},grid:{left:50,right:30,top:35,bottom:25},xAxis:{type:'category',data:data.map(d=>d.战区),axisLine:{lineStyle:{color:'#2a3a5c'}},axisLabel:{color:'#9aa8c0',fontSize:11},axisTick:{show:false}},yAxis:{type:'value',axisLine:{lineStyle:{color:'#2a3a5c'}},axisLabel:{color:'#6b7a94',fontSize:11,formatter:'{value}%'},splitLine:{lineStyle:{color:'#141d33'}}},series:[{name:'逾期率(%)',type:'bar',data:data.map(d=>({value:d.逾期率,itemStyle:{color:d.逾期率>2.5?'#ef4444':d.逾期率>1.8?'#f59e0b':'#22c55e',borderRadius:[4,4,0,0]}})),barWidth:22,label:{show:true,position:'top',color:'#c8d4e8',fontSize:11,formatter:'{c}%'}},{name:'利息率(%)',type:'line',data:data.map(d=>d.利息率),smooth:true,symbol:'circle',symbolSize:8,lineStyle:{color:'#a78bfa',width:2},itemStyle:{color:'#a78bfa'}}]})})();
+(function(){const container=document.getElementById('funnel-container');const maxVal=DATA.funnel[0].value;const colors=['#4a9eff','#06b6d4','#22c55e','#f59e0b','#a78bfa'];let html='';DATA.funnel.forEach((step,i)=>{const widthPct=Math.max(step.value/maxVal*100,15);html+='<div class="funnel-step"><div class="funnel-step-label">'+step.step+'</div><div class="funnel-bar-wrap"><div class="funnel-bar" style="width:'+widthPct+'%;background:linear-gradient(90deg,'+colors[i]+'99,'+colors[i]+');"><span class="bar-value">'+fmtNum(step.value)+'</span><span class="bar-rate">占注册 '+step.overall_rate+'%</span></div></div><div class="funnel-metrics"><div class="funnel-metric"><div class="metric-label">环节转化率</div><div class="metric-value '+(i===0?'gray':'green')+'">'+(i===0?'-':step.step_conv_rate+'%')+'</div></div><div class="funnel-metric"><div class="metric-label">环节流失率</div><div class="metric-value '+(i===0?'gray':'red')+'">'+(i===0?'-':step.step_churn_rate+'%')+'</div></div><div class="funnel-metric"><div class="metric-label">流失人数</div><div class="metric-value gray">'+(i===0?'-':fmtNum(step.churn_count))+'</div></div></div></div>'});container.innerHTML=html})();
+(function(){const container=document.getElementById('zone-conv-container');const stepShort=['注册','实名认证','戳额','给额','成交'];let html='<table class="zone-conv-table"><thead><tr><th style="text-align:left;padding-left:10px;">战区</th>';stepShort.forEach(s=>{html+='<th>'+s+'<br/><span style="color:#4a5568;font-size:10px;">转化 / 流失</span></th>'});html+='</tr></thead><tbody>';DATA.zone_funnel.forEach(zf=>{html+='<tr><td class="zone-name"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:'+ZONE_COLORS[zf.zone]+';margin-right:6px;"></span>'+zf.zone+'</td>';zf.steps.forEach((s,i)=>{if(i===0){html+='<td><div class="conv-cell"><span class="conv-val">'+fmtNum(s.value)+'</span><span class="conv-rate gray">基准</span></div></td>'}else{html+='<td><div class="conv-cell"><span class="conv-val">'+fmtNum(s.value)+'</span><span class="conv-rate green">'+s.conv_rate+'%</span><span class="conv-rate red" style="font-size:10px;font-weight:400;">流失 '+s.churn_rate+'%</span><div class="conv-bar-bg"><div class="conv-bar-fill" style="width:'+s.conv_rate+'%;background:linear-gradient(90deg,#22c55e66,#22c55e);"></div></div></div></td>'}}});html+='</tr>'});html+='</tbody></table>';container.innerHTML=html})();
+let chinaMapLoaded=false;function loadChinaMap(callback){if(chinaMapLoaded){callback();return}fetch('https://geo.datav.aliyun.com/areas_v3/bound/100000_full.json').then(r=>r.json()).then(geoJson=>{echarts.registerMap('china',geoJson);chinaMapLoaded=true;callback()}).catch(()=>{callback()})}
+function createMap(containerId,valueKey){const chart=echarts.init(document.getElementById(containerId),'dark');const cities=DATA.cities;const maxVal=Math.max(...cities.map(c=>c[valueKey]));const scatterData=cities.map(c=>({name:c.city,value:[...c.coord,c[valueKey]],zone:c.zone,raw:c}));chart.setOption({backgroundColor:'transparent',tooltip:{trigger:'item',backgroundColor:'rgba(15,22,41,0.95)',borderColor:'#2a3a5c',textStyle:{color:'#e8ecf4',fontSize:12},formatter:function(p){if(p.seriesType==='scatter'&&p.data.raw){const c=p.data.raw;const valLabel=valueKey==='deal_amount'?'成交额':valueKey==='overdue'?'逾期金额':'逾期率';const valStr=valueKey==='overdue_rate'?c[valueKey]+'%':fmtNum(c[valueKey])+' 元';return'<b>'+c.city+'</b>（'+c.zone+'）<br/>'+valLabel+'：'+valStr+'<br/>成交额：'+fmtNum(c.deal_amount)+' 元<br/>毛利：'+fmtNum(c.gross_profit)+' 元<br/>逾期率：'+c.overdue_rate+'%'}return p.name}},geo:{map:'china',roam:false,zoom:1.2,center:[108,34],label:{show:false},itemStyle:{areaColor:'#0d1525',borderColor:'#1e3050',borderWidth:0.8},emphasis:{itemStyle:{areaColor:'#162240'},label:{show:false}}},series:[{name:containerId,type:'scatter',coordinateSystem:'geo',data:scatterData,symbolSize:function(val){const v=val[2];const base=valueKey==='overdue_rate'?8:10;return base+Math.sqrt(v/maxVal)*30},itemStyle:{color:function(p){return ZONE_COLORS[p.data.zone]||'#4a9eff'},shadowBlur:10,shadowColor:'rgba(74,158,255,0.4)',opacity:0.85},label:{show:true,position:'right',formatter:function(p){const c=p.data.raw;const v=valueKey==='overdue_rate'?c[valueKey]+'%':fmtWan(c[valueKey]);return'{name|'+c.city+'}\n{val|'+v+'}'},rich:{name:{color:'#c8d4e8',fontSize:11,fontWeight:600,lineHeight:14},val:{color:'#7a8aa6',fontSize:10,lineHeight:13}}},emphasis:{scale:1.3,itemStyle:{shadowBlur:20}}}]})}
+loadChinaMap(function(){createMap('map-deal','deal_amount');createMap('map-overdue','overdue');createMap('map-risk','overdue_rate')});
+(function(){const table=document.getElementById('city-table');const cities=[...DATA.cities].sort((a,b)=>b.gross_profit-a.gross_profit);let html='<thead><tr><th>城市</th><th>战区</th><th>成交额(万)</th><th>完成率</th><th>毛利(元)</th><th>逾期金额(元)</th><th>逾期率</th></tr></thead><tbody>';cities.forEach((c,i)=>{const rankClass=i===0?'rank-1':i===1?'rank-2':i===2?'rank-3':'rank-other';const overdueClass=c.overdue_rate>2.5?'overdue-high':c.overdue_rate>1.5?'overdue-mid':'overdue-low';const compColor=c.completion_rate>=100?'#22c55e':c.completion_rate>=80?'#4a9eff':'#f59e0b';html+='<tr><td><span class="rank-badge '+rankClass+'">'+(i+1)+'</span>'+c.city+'<span style="font-size:10px;color:#5a6a86;margin-left:4px;">'+c.city_level+'</span></td><td style="color:'+ZONE_COLORS[c.zone]+';font-size:11px;">'+c.zone+'</td><td>'+fmtWan(c.deal_amount)+'</td><td style="color:'+compColor+';font-weight:600;">'+c.completion_rate+'%</td><td class="profit-pos">'+fmtNum(c.gross_profit)+'</td><td>'+fmtNum(c.overdue)+'</td><td class="'+overdueClass+'">'+c.overdue_rate+'%</td></tr>'});html+='</tbody>';table.innerHTML=html})();
+(function(){const chart=echarts.init(document.getElementById('chart-daily'),'dark');const data=DATA.daily_trend;chart.setOption({backgroundColor:'transparent',tooltip:{trigger:'axis',backgroundColor:'rgba(15,22,41,0.95)',borderColor:'#2a3a5c',textStyle:{color:'#e8ecf4',fontSize:12}},legend:{data:['成交额','毛利','逾期金额'],textStyle:{color:'#7a8aa6',fontSize:11},top:0,right:10},grid:{left:60,right:30,top:35,bottom:30},xAxis:{type:'category',data:data.map(d=>d.日期_str),axisLine:{lineStyle:{color:'#2a3a5c'}},axisLabel:{color:'#6b7a94',fontSize:10,interval:2},axisTick:{show:false}},yAxis:{type:'value',axisLine:{lineStyle:{color:'#2a3a5c'}},axisLabel:{color:'#6b7a94',fontSize:11,formatter:v=>(v/10000).toFixed(0)+'万'},splitLine:{lineStyle:{color:'#141d33'}}},series:[{name:'成交额',type:'line',data:data.map(d=>d.成交额),smooth:true,symbol:'none',lineStyle:{color:'#4a9eff',width:2},areaStyle:{color:new echarts.graphic.LinearGradient(0,0,0,1,[{offset:0,color:'rgba(74,158,255,0.25)'},{offset:1,color:'rgba(74,158,255,0)'}])}},{name:'毛利',type:'line',data:data.map(d=>d.毛利),smooth:true,symbol:'none',lineStyle:{color:'#22c55e',width:2}},{name:'逾期金额',type:'bar',data:data.map(d=>d.逾期金额),barWidth:6,itemStyle:{color:'rgba(239,68,68,0.5)',borderRadius:[3,3,0,0]}}]})})();
+window.addEventListener('resize',function(){document.querySelectorAll('.chart-container').forEach(el=>{const inst=echarts.getInstanceByDom(el);if(inst)inst.resize()})});
+</script>
+</body>
+</html>
